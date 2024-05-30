@@ -14,5 +14,8 @@
 
 - Create two folders 6_channels/ and 3_channels/.
 - Change the datasets path in the generate_dataset.py (around line 29). 
-- Run "python generate_dataset.py".
+- Run "python generate_dataset_openpose_color.py".
 - 3_channels dataset would be in 3_channels/ folder and 6_channels npy dataset would be in 6_channels/.
+
+## Notes by Yue
+6 channels images will all be saved in `./6_channels` folder. You could first check whether the generated 3 channels are correct by checking `./lst_3_channels` :)
