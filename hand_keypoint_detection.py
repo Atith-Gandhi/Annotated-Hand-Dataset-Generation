@@ -7,7 +7,7 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
 
 # For static images:
-file_path = './datasets/sign_language_dataset/' # Path to the folder containing the images
+file_path = './datasets/10_imgs' # Path to the folder containing the images
 IMAGE_FILES = os.listdir(file_path)
 max_image_count = 10000
 print(IMAGE_FILES[0])
@@ -39,7 +39,7 @@ with mp_hands.Hands(
     if(img_count == max_image_count):
       break
     
-    image = cv2.flip(cv2.imread(f'{file_path}{file}'), 1)
+    image = cv2.flip(cv2.imread(f'{file_path}/{file}'), 1)
     
     # Convert the BGR image to RGB before processing.
     results = hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))

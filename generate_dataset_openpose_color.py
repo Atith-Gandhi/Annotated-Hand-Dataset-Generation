@@ -11,6 +11,24 @@ Description: generate the dataset in preparation for the Generative model traini
 TODO: draw fingers far away first, then draw closer fingers
 """
 
+# Define finger colors
+finger_colors = {
+    "thumb": ["#ff0a00", "#fe4d00", "#ff9900", "#ffe502"],
+    "index": ["#ccff02", "#80ff00", "#33ff00", "#00ff19"],
+    "middle": ["#01FF66", "#01FFB3", "#01FFFF", "#00B2FF"],
+    "ring": ["#0866FF", "#0F19FF", "#3300FF", "#8001FF"],
+    "pinky": ["#CC01FF", "#FF00E6", "#FF0099", "#FF054D"]
+}
+
+color_ls = [c for _, cs in finger_colors.items() for c in cs]
+
+
+# Function to convert hex color to BGR for OpenCV
+def hex_to_bgr(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i + 2], 16) for i in (4, 2, 0))
+
+
 
 
 POSE_PAIRS = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [0, 9], [9, 10], [10, 11], [11, 12],
@@ -62,7 +80,8 @@ for i, img in enumerate(sorted(os.listdir(img_folder_pth))[:SMAPLE_NUM]):
         ori_img = cv2.resize(ori_img, (256, 256))
         print(ori_img.shape)
         one_channel = ori_img[:, :, -1:]
-        img_c1, img_c2, img_c3 = np.zeros_like(one_channel), np.zeros_like(one_channel), np.zeros_like(one_channel)
+        # img_c1, img_c2, img_c3 = np.zeros_like(one_channel), np.zeros_like(one_channel), np.zeros_like(one_channel)
+        img_c1 = np.zeros_like(ori_img)
 
         for i, points in enumerate(hand_points):
             print(np.max(points[:, 1]))
@@ -71,28 +90,19 @@ for i, img in enumerate(sorted(os.listdir(img_folder_pth))[:SMAPLE_NUM]):
             points = points.astype(int)
             points = np.array([[255 - p[0], p[1], p[2]] for p in points])
 
-
             # calculate average color for each line
             pose_pair_joint_locations = np.array([points[p[0]][2] + points[p[1]][2] for p in POSE_PAIRS])
             if(hand_handedness[i] == 0):
                 channel_3_color = 100
             elif(hand_handedness[i] == 1):
                 channel_3_color = 200
-            
-            blur_level, THICKNESS = 1, 1 
-            color_c1 = [50, 150, 250, 100, 200]
-            color_c2 = [100, 200, 50, 150, 250]
 
-            updown_pair_joint_locations = np.array([points[p[0]][2] + points[p[1]][2] for p in UP_DOWN_PARIS])
-            
-
-            
-            blur_level, THICKNESS = 1, 1
-            color_c1 = [50, 150, 250, 100, 200]
-            color_c2 = [100, 200, 50, 150, 250]
+            THICKNESS = 1
             for i in np.flip(np.argsort(pose_pair_joint_locations)):
                 pair = POSE_PAIRS[i]
-                color = color_c1[i // 4]
+                # color = color_c1[i // 4]
+                color = color_ls[i]
+                color = hex_to_bgr(color)
                 partA = pair[0]
                 partB = pair[1]
 
@@ -102,69 +112,16 @@ for i, img in enumerate(sorted(os.listdir(img_folder_pth))[:SMAPLE_NUM]):
                     cv2.circle(img_c1, (points[partB][0], points[partB][1]), THICKNESS, color, thickness=-1, lineType=cv2.FILLED)
 
 
-                img_c1 = cv2.blur(img_c1, (blur_level, blur_level))
-
-            
-
-            for i in np.flip(np.argsort(updown_pair_joint_locations)):
-                pair = UP_DOWN_PARIS[i]
-                color = color_c2[i // 5]
-                partA = pair[0]
-                partB = pair[1]
-                
-
-                if partA < points.shape[0] and partB < points.shape[0]:
-                    
-                    cv2.line(img_c2, tuple(np.array(points[pair[0]][:2], dtype=int)),
-                            tuple(np.array(points[pair[1]][:2], dtype=int)), color, THICKNESS * 2)
-                    
-                    cv2.circle(img_c2, tuple(np.array(points[pair[0]][:2], dtype=int)), THICKNESS, color, thickness=-1,
-                            lineType=cv2.FILLED)
-                    
-                    cv2.circle(img_c2, tuple(np.array(points[pair[1]][:2], dtype=int)), THICKNESS, color, thickness=-1,
-                            lineType=cv2.FILLED)
-                
-                img_c2 = cv2.blur(img_c2, (blur_level, blur_level))
-            
-
-            for i in np.flip(np.argsort(pose_pair_joint_locations)):
-                pair = POSE_PAIRS[i]
-                color = channel_3_color
-                partA = pair[0]
-                partB = pair[1]
-
-                if partA < points.shape[0] and partB < points.shape[0]:
-                    cv2.line(img_c3, tuple(np.array(points[pair[0]][:2], dtype=int)),
-                            tuple(np.array(points[pair[1]][:2], dtype=int)), color, THICKNESS * 2)
-                    cv2.circle(img_c3, tuple(np.array(points[pair[0]][:2], dtype=int)), THICKNESS, color, thickness=-1,
-                            lineType=cv2.FILLED)
-                    cv2.circle(img_c3, tuple(np.array(points[pair[1]][:2], dtype=int)), THICKNESS, color, thickness=-1,
-                            lineType=cv2.FILLED)
-
-                img_c3 = cv2.blur(img_c3, (blur_level, blur_level))
-            
-
-            # stack 6 channels
-
-        print("yyy ")
-        img_c1, img_c2, img_c3, ori_img = Image.fromarray(img_c1), Image.fromarray(img_c2), Image.fromarray(img_c3), Image.fromarray(ori_img)
-        img_c1 = img_c1.resize((256, 256))
-        img_c2 = img_c2.resize((256, 256))
-        img_c3 = img_c3.resize((256, 256))
-        ori_img = ori_img.resize((256, 256))
-
-        img_c1, img_c2, img_c3, ori_img = np.asarray(img_c1), np.asarray(img_c2), np.asarray(img_c3), np.asarray(ori_img) 
-
-        img_final = np.stack([ori_img[:, :, 0], ori_img[:, :, 1], ori_img[:, :, 2], img_c1, img_c2, img_c3], axis=2)
+        # Save the 6-channel numpy array
+        img_final = np.squeeze(np.stack(
+            [ori_img, img_c1],
+            axis=2))
         img_final_name = f'{dataset_6_channels_pth}{cnt:06d}' + "_img_final.npy"
         np.save(img_final_name, img_final)
 
-        real_image_with_skeleton_name = f'{dataset_3_channels_pth}{cnt:06d}' + "_real_img.jpg"
-        cv2.imwrite(real_image_with_skeleton_name, ori_img)
-
-        img_lst_3c = np.stack([img_c1, img_c2, img_c3], axis=2)
+        # Save last 3-channel numpy array
         img_lst_3c_pth = f'{dataset_lst_3_channels_pth}{cnt:06d}' + "_lst_3c.jpg"
-        cv2.imwrite(img_lst_3c_pth, img_lst_3c)
+        cv2.imwrite(img_lst_3c_pth, img_c1)
 
         cnt += 1
         print(cnt)
